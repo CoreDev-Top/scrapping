@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [teeTimes, setTeeTimes] = useState<any>(null);
   const [teeTimesLoading, setTeeTimesLoading] = useState(false);
+  const [notifications, setNotifications] = useState<{[key: string]: boolean}>({});
   const supabase = getSupabase();
 
   useEffect(() => {
@@ -54,10 +55,10 @@ export default function DashboardPage() {
           router.push("/login");
         }
       } catch (error: any) {
-        console.error("Auth error:", error);
+        console.error("Authentication error:", error);
         toast({
           title: "Authentication error",
-          description: error.message || "Please sign in again.",
+          description: "Please sign in again.",
           variant: "destructive",
         });
         router.push("/login");
@@ -153,7 +154,6 @@ export default function DashboardPage() {
         setTeeTimes(tmp);
       }
     } catch (error) {
-      console.error("Error fetching city data:", error);
       toast({
         title: "Error",
         description: "Failed to fetch city data. Please try again.",
@@ -209,7 +209,6 @@ export default function DashboardPage() {
 
         const data = await response.json();
         // You can set state here if you want to display the data
-        console.log("...." + new Date(), data);
         if (data.ttResults.facilities.length) {
           const facilities = data.ttResults.facilities;
           const tmp: any = [];
@@ -230,11 +229,9 @@ export default function DashboardPage() {
               });
             }
           });
-          console.log(tmp);
           setTeeTimes(tmp);
         }
       } catch (error) {
-        console.error("Error fetching tee times:", error);
       } finally {
         setTeeTimesLoading(false);
       }
@@ -248,6 +245,114 @@ export default function DashboardPage() {
     // Cleanup on unmount
     return () => clearInterval(interval);
   }, [players, holes, timeRange, position, date]);
+
+  // Function to check if a tee time is being tracked
+  const checkNotificationStatus = async (url: string) => {
+    if (!user?.email) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('tee_times')
+        .select('*')
+        .eq('url', url)
+        .eq('user_email', user.email)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking notification status:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      return false;
+    }
+  };
+
+  // Function to toggle notification
+  const toggleNotification = async (detail: any) => {
+    if (!user?.email) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to set notifications.",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
+
+    const url = `https://www.teeoff.com/${detail.detailUrl}`;
+    const isCurrentlyTracked = await checkNotificationStatus(url);
+
+    try {
+      if (isCurrentlyTracked) {
+        // Remove notification
+        const { error } = await supabase
+          .from('tee_times')
+          .delete()
+          .eq('url', url)
+          .eq('user_email', user.email);
+
+        if (error) throw error;
+        setNotifications(prev => ({ ...prev, [url]: false }));
+        toast({
+          title: "Notification Removed",
+          description: "You will no longer receive notifications for this tee time.",
+        });
+      } else {
+        // Format the date and time for the database
+        const [hours, minutes, period] = detail.time.match(/(\d+):(\d+)\s*(AM|PM)/i).slice(1);
+        let hour = parseInt(hours);
+        if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
+        if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+        
+        const teeTimeDate = new Date(date);
+        teeTimeDate.setHours(hour, parseInt(minutes), 0, 0);
+
+        // Add notification
+        const { error } = await supabase
+          .from('tee_times')
+          .insert({
+            user_email: user.email,
+            tee_time: teeTimeDate.toISOString(),
+            notified: false,
+            url: url
+          });
+
+        if (error) throw error;
+        setNotifications(prev => ({ ...prev, [url]: true }));
+        toast({
+          title: "Notification Set",
+          description: "You will be notified about this tee time.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update notification status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load notification statuses when tee times are loaded
+  useEffect(() => {
+    const loadNotificationStatuses = async () => {
+      if (!teeTimes || !user?.email) return;
+
+      const statuses: {[key: string]: boolean} = {};
+      for (const course of teeTimes) {
+        for (const detail of course.teeTimes) {
+          const url = `https://www.teeoff.com/${detail.detailUrl}`;
+          statuses[url] = await checkNotificationStatus(url);
+        }
+      }
+      setNotifications(statuses);
+    };
+
+    loadNotificationStatuses();
+  }, [teeTimes, user?.email]);
 
   if (loading) {
     return (
@@ -445,14 +550,28 @@ export default function DashboardPage() {
                                 <div className="text-xs text-blue-700 font-bold mb-1">
                                   {detail.holes ? `${detail.holes} Holes` : ""}
                                 </div>
-                                <a
-                                  href={`https://www.teeoff.com/${detail.detailUrl}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition"
-                                >
-                                  Book
-                                </a>
+                                <div className="flex gap-2">
+                                  <a
+                                    href={`https://www.teeoff.com/${detail.detailUrl}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition"
+                                  >
+                                    Book
+                                  </a>
+                                  {user?.email && (
+                                    <button
+                                      onClick={() => toggleNotification(detail)}
+                                      className={`px-2 py-1 rounded text-xs transition ${
+                                        notifications[`https://www.teeoff.com/${detail.detailUrl}`]
+                                          ? "bg-red-600 text-white hover:bg-red-700"
+                                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                      }`}
+                                    >
+                                      {notifications[`https://www.teeoff.com/${detail.detailUrl}`] ? "Cancel" : "Notify"}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ClubIcon as GolfIcon } from "lucide-react"
 import { getSupabase } from "@/lib/supabase"
-import { toast } from "@/components/ui/use-toast"
+import { useNotification } from "@/components/ui/use-notification"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [origin, setOrigin] = useState("")
   const router = useRouter()
   const supabase = getSupabase()
+  const { addNotification } = useNotification()
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -26,29 +27,73 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Basic validation
+    if (!email || !password) {
+      addNotification({
+        title: "Missing information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      addNotification({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
       })
 
       if (error) {
-        console.error("Login error:", error)
-        throw error
+        console.log('error', error.message);
+        if (error.message === "Invalid login credentials") {
+          addNotification({
+            title: "Login failed",
+            description: "The email or password you entered is incorrect.",
+            variant: "destructive",
+          })
+        } else if (error.message.includes("Email not confirmed")) {
+          addNotification({
+            title: "Email not verified",
+            description: "Please check your email to verify your account.",
+            variant: "destructive",
+          })
+        } else {
+          addNotification({
+            title: "Login error",
+            description: "An unexpected error occurred. Please try again.",
+            variant: "destructive",
+          })
+        }
+        return
       }
 
-      toast({
-        title: "Success",
-        description: "You have successfully signed in.",
-      })
-      router.push("/dashboard")
+      if (data?.user) {
+        addNotification({
+          title: "Login successful",
+          description: "Redirecting to dashboard...",
+          variant: "success",
+        })
+        router.push("/dashboard")
+      }
     } catch (error: any) {
-      console.error("Error details:", error)
-      toast({
-        title: "Error signing in",
-        description: error.message || "Please check your credentials and try again.",
+      console.error("Login error:", error)
+      addNotification({
+        title: "Login failed",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -58,7 +103,7 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast({
+      addNotification({
         title: "Email required",
         description: "Please enter your email address to reset your password.",
         variant: "destructive",
@@ -67,7 +112,7 @@ export default function LoginPage() {
     }
 
     if (!origin) {
-      toast({
+      addNotification({
         title: "Error",
         description: "Unable to determine application URL. Please try again.",
         variant: "destructive",
@@ -86,12 +131,13 @@ export default function LoginPage() {
         throw error
       }
 
-      toast({
+      addNotification({
         title: "Password reset email sent",
         description: "Check your email for a password reset link.",
+        variant: "success",
       })
     } catch (error: any) {
-      toast({
+      addNotification({
         title: "Error",
         description: error.message || "Failed to send reset email. Please try again.",
         variant: "destructive",
@@ -148,7 +194,7 @@ export default function LoginPage() {
               className="w-full bg-green-600 hover:bg-green-700" 
               disabled={isLoading}
             >
-              Sign In
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
         </CardContent>
