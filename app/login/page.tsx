@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -17,8 +16,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [origin, setOrigin] = useState("")
   const router = useRouter()
   const supabase = getSupabase()
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,11 +66,20 @@ export default function LoginPage() {
       return
     }
 
+    if (!origin) {
+      toast({
+        title: "Error",
+        description: "Unable to determine application URL. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${origin}/reset-password`,
       })
 
       if (error) {
@@ -130,8 +143,12 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button 
+              type="submit" 
+              className="w-full bg-green-600 hover:bg-green-700" 
+              disabled={isLoading}
+            >
+              Sign In
             </Button>
           </form>
         </CardContent>
