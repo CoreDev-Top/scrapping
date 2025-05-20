@@ -424,16 +424,23 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="San Diego">San Diego</SelectItem>
-                  <SelectItem value="Seattle">Cross Creek</SelectItem>
-                  <SelectItem value="Seattle">Crossings</SelectItem>
-                  <SelectItem value="Seattle">Dos Osos</SelectItem>
-                  <SelectItem value="Seattle">Encinitas Ranch</SelectItem>
-                  <SelectItem value="Seattle">Glen Ivy Golf Club</SelectItem>
-                  <SelectItem value="Seattle">
+                  <SelectItem value="Seattle">Seattle</SelectItem>
+                  <SelectItem value="Cross Creek">Cross Creek</SelectItem>
+                  <SelectItem value="Crossings">Crossings</SelectItem>
+                  <SelectItem value="Dos Osos">Dos Osos</SelectItem>
+                  <SelectItem value="Encinitas Ranch">
+                    Encinitas Ranch
+                  </SelectItem>
+                  <SelectItem value="Glen Ivy Golf Club">
+                    Glen Ivy Golf Club
+                  </SelectItem>
+                  <SelectItem value="Golf Club of California">
                     Golf Club of California
                   </SelectItem>
-                  <SelectItem value="Seattle">Rancho Bernardo Inn</SelectItem>
-                  <SelectItem value="Seattle">Twin Oaks</SelectItem>
+                  <SelectItem value="Rancho Bernardo Inn">
+                    Rancho Bernardo Inn
+                  </SelectItem>
+                  <SelectItem value="Twin Oaks">Twin Oaks</SelectItem>
                 </SelectContent>
               </Select>
             </div>
