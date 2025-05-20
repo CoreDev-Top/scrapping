@@ -32,8 +32,12 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [teeTimes, setTeeTimes] = useState<any>(null);
   const [teeTimesLoading, setTeeTimesLoading] = useState(false);
-  const [notifications, setNotifications] = useState<{[key: string]: boolean}>({});
-  const [loadingNotifications, setLoadingNotifications] = useState<{[key: string]: boolean}>({});
+  const [notifications, setNotifications] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [loadingNotifications, setLoadingNotifications] = useState<{
+    [key: string]: boolean;
+  }>({});
   const supabase = getSupabase();
 
   useEffect(() => {
@@ -98,16 +102,16 @@ export default function DashboardPage() {
     const dates: Date[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day
-    
+
     // Add all dates before today to disabled dates
     const startDate = new Date(2024, 0, 1); // Start from year 2024
     let date = new Date(startDate);
-    
+
     while (date < today) {
       dates.push(new Date(date));
       date.setDate(date.getDate() + 1);
     }
-    
+
     return dates;
   }, []);
 
@@ -189,7 +193,11 @@ export default function DashboardPage() {
             SearchType: 4,
             SortBy: "Facilities.Distance",
             SortDirection: 0,
-            Date: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            Date: date.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }),
             HotDealsOnly: true,
             PriceMin: 0,
             PriceMax: 10000,
@@ -255,23 +263,23 @@ export default function DashboardPage() {
   // Function to check if a tee time is being tracked
   const checkNotificationStatus = async (url: string) => {
     if (!user?.email) return false;
-    
+
     try {
       const { data, error } = await supabase
-        .from('tee_times')
-        .select('*')
-        .eq('url', url)
-        .eq('user_email', user.email)
+        .from("tee_times")
+        .select("*")
+        .eq("url", url)
+        .eq("user_email", user.email)
         .maybeSingle();
 
       if (error) {
-        console.error('Error checking notification status:', error);
+        console.error("Error checking notification status:", error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error('Error checking notification status:', error);
+      console.error("Error checking notification status:", error);
       return false;
     }
   };
@@ -289,7 +297,7 @@ export default function DashboardPage() {
     }
 
     const url = `https://www.teeoff.com/${detail.detailUrl}`;
-    setLoadingNotifications(prev => ({ ...prev, [url]: true }));
+    setLoadingNotifications((prev) => ({ ...prev, [url]: true }));
 
     try {
       const isCurrentlyTracked = await checkNotificationStatus(url);
@@ -297,39 +305,40 @@ export default function DashboardPage() {
       if (isCurrentlyTracked) {
         // Remove notification
         const { error } = await supabase
-          .from('tee_times')
+          .from("tee_times")
           .delete()
-          .eq('url', url)
-          .eq('user_email', user.email);
+          .eq("url", url)
+          .eq("user_email", user.email);
 
         if (error) throw error;
-        setNotifications(prev => ({ ...prev, [url]: false }));
+        setNotifications((prev) => ({ ...prev, [url]: false }));
         toast({
           title: "Notification Removed",
-          description: "You will no longer receive notifications for this tee time.",
+          description:
+            "You will no longer receive notifications for this tee time.",
         });
       } else {
         // Format the date and time for the database
-        const [hours, minutes, period] = detail.time.match(/(\d+):(\d+)\s*(AM|PM)/i).slice(1);
+        const [hours, minutes, period] = detail.time
+          .match(/(\d+):(\d+)\s*(AM|PM)/i)
+          .slice(1);
         let hour = parseInt(hours);
-        if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
-        if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
-        
+        if (period.toUpperCase() === "PM" && hour !== 12) hour += 12;
+        if (period.toUpperCase() === "AM" && hour === 12) hour = 0;
+
         const teeTimeDate = new Date(date);
         teeTimeDate.setHours(hour, parseInt(minutes), 0, 0);
 
         // Add notification
-        const { error } = await supabase
-          .from('tee_times')
-          .insert({
-            user_email: user.email,
-            tee_time: teeTimeDate.toISOString(),
-            notified: false,
-            url: url
-          });
+        const { error } = await supabase.from("tee_times").insert({
+          user_email: user.email,
+          tee_time: teeTimeDate.toISOString(),
+          notified: false,
+          url: url,
+        });
 
         if (error) throw error;
-        setNotifications(prev => ({ ...prev, [url]: true }));
+        setNotifications((prev) => ({ ...prev, [url]: true }));
         toast({
           title: "Notification Set",
           description: "You will be notified about this tee time.",
@@ -342,7 +351,7 @@ export default function DashboardPage() {
         variant: "destructive",
       });
     } finally {
-      setLoadingNotifications(prev => ({ ...prev, [url]: false }));
+      setLoadingNotifications((prev) => ({ ...prev, [url]: false }));
     }
   };
 
@@ -351,7 +360,7 @@ export default function DashboardPage() {
     const loadNotificationStatuses = async () => {
       if (!teeTimes || !user?.email) return;
 
-      const statuses: {[key: string]: boolean} = {};
+      const statuses: { [key: string]: boolean } = {};
       for (const course of teeTimes) {
         for (const detail of course.teeTimes) {
           const url = `https://www.teeoff.com/${detail.detailUrl}`;
@@ -415,7 +424,16 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="San Diego">San Diego</SelectItem>
-                  <SelectItem value="Seattle">Seattle</SelectItem>
+                  <SelectItem value="Seattle">Cross Creek</SelectItem>
+                  <SelectItem value="Seattle">Crossings</SelectItem>
+                  <SelectItem value="Seattle">Dos Osos</SelectItem>
+                  <SelectItem value="Seattle">Encinitas Ranch</SelectItem>
+                  <SelectItem value="Seattle">Glen Ivy Golf Club</SelectItem>
+                  <SelectItem value="Seattle">
+                    Golf Club of California
+                  </SelectItem>
+                  <SelectItem value="Seattle">Rancho Bernardo Inn</SelectItem>
+                  <SelectItem value="Seattle">Twin Oaks</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -542,59 +560,104 @@ export default function DashboardPage() {
                           </h3>
                           <div className="text-sm text-gray-600">
                             {teeTime.address.city},{" "}
-                            {teeTime.address.stateProvince} {teeTime.address.postalCode}
+                            {teeTime.address.stateProvince}{" "}
+                            {teeTime.address.postalCode}
                             {" · "}Distance: <b>{teeTime.distance}</b>
                           </div>
                           <div className="flex flex-wrap gap-3 mt-3">
-                            {teeTime.teeTimes && teeTime.teeTimes.length > 0 && teeTime.teeTimes.map((detail: any, i: number) => (
-                              <div
-                                key={i}
-                                className="bg-white border rounded-lg shadow flex flex-col items-center px-4 py-2 min-w-[110px]"
-                                style={{ minWidth: 110 }}
-                              >
-                                <div className="text-green-800 font-bold text-lg" dangerouslySetInnerHTML={{ __html: detail.price || "" }} />
-                                <div className="font-semibold text-sm mt-1">{detail.time}</div>
-                                <div className="text-xs text-gray-500 mb-1">
-                                  {detail.players >=4?"1-4":detail.players} Players
-                                </div>
-                                <div className="text-xs text-blue-700 font-bold mb-1">
-                                  {detail.holes ? `${detail.holes} Holes` : ""}
-                                </div>
-                                <div className="flex gap-2">
-                                  <a
-                                    href={`https://www.teeoff.com/${detail.detailUrl}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition"
-                                  >
-                                    Book
-                                  </a>
-                                  {user?.email && (
-                                    <button
-                                      onClick={() => toggleNotification(detail)}
-                                      disabled={loadingNotifications[`https://www.teeoff.com/${detail.detailUrl}`]}
-                                      className={`px-2 py-1 rounded text-xs transition flex items-center gap-1 ${
-                                        notifications[`https://www.teeoff.com/${detail.detailUrl}`]
-                                          ? "bg-red-600 text-white hover:bg-red-700"
-                                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                      }`}
+                            {teeTime.teeTimes &&
+                              teeTime.teeTimes.length > 0 &&
+                              teeTime.teeTimes.map((detail: any, i: number) => (
+                                <div
+                                  key={i}
+                                  className="bg-white border rounded-lg shadow flex flex-col items-center px-4 py-2 min-w-[110px]"
+                                  style={{ minWidth: 110 }}
+                                >
+                                  <div
+                                    className="text-green-800 font-bold text-lg"
+                                    dangerouslySetInnerHTML={{
+                                      __html: detail.price || "",
+                                    }}
+                                  />
+                                  <div className="font-semibold text-sm mt-1">
+                                    {detail.time}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mb-1">
+                                    {detail.players >= 4
+                                      ? "1-4"
+                                      : detail.players}{" "}
+                                    Players
+                                  </div>
+                                  <div className="text-xs text-blue-700 font-bold mb-1">
+                                    {detail.holes
+                                      ? `${detail.holes} Holes`
+                                      : ""}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <a
+                                      href={`https://www.teeoff.com/${detail.detailUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition"
                                     >
-                                      {loadingNotifications[`https://www.teeoff.com/${detail.detailUrl}`] ? (
-                                        <>
-                                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                          </svg>
-                                          <span>...</span>
-                                        </>
-                                      ) : (
-                                        notifications[`https://www.teeoff.com/${detail.detailUrl}`] ? "Cancel" : "Notify"
-                                      )}
-                                    </button>
-                                  )}
+                                      Book
+                                    </a>
+                                    {user?.email && (
+                                      <button
+                                        onClick={() =>
+                                          toggleNotification(detail)
+                                        }
+                                        disabled={
+                                          loadingNotifications[
+                                            `https://www.teeoff.com/${detail.detailUrl}`
+                                          ]
+                                        }
+                                        className={`px-2 py-1 rounded text-xs transition flex items-center gap-1 ${
+                                          notifications[
+                                            `https://www.teeoff.com/${detail.detailUrl}`
+                                          ]
+                                            ? "bg-red-600 text-white hover:bg-red-700"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        }`}
+                                      >
+                                        {loadingNotifications[
+                                          `https://www.teeoff.com/${detail.detailUrl}`
+                                        ] ? (
+                                          <>
+                                            <svg
+                                              className="animate-spin h-3 w-3"
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <circle
+                                                className="opacity-25"
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                              ></circle>
+                                              <path
+                                                className="opacity-75"
+                                                fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                              ></path>
+                                            </svg>
+                                            <span>...</span>
+                                          </>
+                                        ) : notifications[
+                                            `https://www.teeoff.com/${detail.detailUrl}`
+                                          ] ? (
+                                          "Cancel"
+                                        ) : (
+                                          "Notify"
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
                           </div>
                         </div>
                       </div>
