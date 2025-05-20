@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [teeTimes, setTeeTimes] = useState<any>(null);
   const [teeTimesLoading, setTeeTimesLoading] = useState(false);
   const [notifications, setNotifications] = useState<{[key: string]: boolean}>({});
+  const [loadingNotifications, setLoadingNotifications] = useState<{[key: string]: boolean}>({});
   const supabase = getSupabase();
 
   useEffect(() => {
@@ -95,13 +96,18 @@ export default function DashboardPage() {
   // Pre-calculate disabled dates
   const disabledDates = useMemo(() => {
     const dates: Date[] = [];
-    const currentDate = new Date(Date.UTC(2025, 4, 19));
-    const startDate = new Date(Date.UTC(2025, 0, 1));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    
+    // Add all dates before today to disabled dates
+    const startDate = new Date(2024, 0, 1); // Start from year 2024
     let date = new Date(startDate);
-    while (date < currentDate) {
+    
+    while (date < today) {
       dates.push(new Date(date));
       date.setDate(date.getDate() + 1);
     }
+    
     return dates;
   }, []);
 
@@ -183,7 +189,7 @@ export default function DashboardPage() {
             SearchType: 4,
             SortBy: "Facilities.Distance",
             SortDirection: 0,
-            Date: "May 21 2025",
+            Date: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
             HotDealsOnly: true,
             PriceMin: 0,
             PriceMax: 10000,
@@ -199,7 +205,7 @@ export default function DashboardPage() {
             ExcludeFeaturedFacilities: false,
             TeeTimeCount: 20,
             PromotedCampaignsOnly: false,
-            CurrentClientDate: "2025-05-19T04:00:00.000Z",
+            CurrentClientDate: new Date().toISOString(),
           }),
         });
 
@@ -283,9 +289,11 @@ export default function DashboardPage() {
     }
 
     const url = `https://www.teeoff.com/${detail.detailUrl}`;
-    const isCurrentlyTracked = await checkNotificationStatus(url);
+    setLoadingNotifications(prev => ({ ...prev, [url]: true }));
 
     try {
+      const isCurrentlyTracked = await checkNotificationStatus(url);
+
       if (isCurrentlyTracked) {
         // Remove notification
         const { error } = await supabase
@@ -333,6 +341,8 @@ export default function DashboardPage() {
         description: error.message || "Failed to update notification status",
         variant: "destructive",
       });
+    } finally {
+      setLoadingNotifications(prev => ({ ...prev, [url]: false }));
     }
   };
 
@@ -562,13 +572,24 @@ export default function DashboardPage() {
                                   {user?.email && (
                                     <button
                                       onClick={() => toggleNotification(detail)}
-                                      className={`px-2 py-1 rounded text-xs transition ${
+                                      disabled={loadingNotifications[`https://www.teeoff.com/${detail.detailUrl}`]}
+                                      className={`px-2 py-1 rounded text-xs transition flex items-center gap-1 ${
                                         notifications[`https://www.teeoff.com/${detail.detailUrl}`]
                                           ? "bg-red-600 text-white hover:bg-red-700"
                                           : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                       }`}
                                     >
-                                      {notifications[`https://www.teeoff.com/${detail.detailUrl}`] ? "Cancel" : "Notify"}
+                                      {loadingNotifications[`https://www.teeoff.com/${detail.detailUrl}`] ? (
+                                        <>
+                                          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                          <span>...</span>
+                                        </>
+                                      ) : (
+                                        notifications[`https://www.teeoff.com/${detail.detailUrl}`] ? "Cancel" : "Notify"
+                                      )}
                                     </button>
                                   )}
                                 </div>
