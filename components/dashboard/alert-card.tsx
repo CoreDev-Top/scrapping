@@ -64,14 +64,17 @@ export function AlertCard({ alert, onUpdate }: AlertCardProps) {
   // Format the date for display
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString)
+      // Create date in UTC to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
-      })
+        timeZone: 'UTC'
+      });
     } catch (e) {
-      return dateString
+      return dateString;
     }
   }
 

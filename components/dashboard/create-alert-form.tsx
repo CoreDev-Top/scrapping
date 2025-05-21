@@ -70,6 +70,7 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated: () => void
         players: Number.parseInt(players),
         alert_date: format(date, "yyyy-MM-dd"),
         is_active: true,
+        is_sent: false
       })
 
       if (error) throw error
